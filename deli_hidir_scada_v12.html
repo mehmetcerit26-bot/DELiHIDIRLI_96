@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DELİHIDIRLI KUYU-DEPO KONTROL</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #6f6f6f;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.win-titlebar {
+  background: linear-gradient(180deg,#2a2a2a,#0a0a0a);
+  display:flex;
+  align-items:center;
+  padding:3px 6px;
+  gap:6px;
+  font-size:12px;
+  color:#ddd;
+}
+.win-titlebar .wicon { width:14px;height:14px;background:#1aaa6a;border-radius:2px; }
+.win-titlebar .wctrls { margin-left:auto; display:flex; gap:10px; color:#aaa; }
+
+.menubar {
+  background: #d4d0c8;
+  padding: 2px 6px;
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid #888;
+  color: #000;
+}
+.menubar span { cursor: default; }
+
+.title-bar {
+  background: #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 0.5px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.title-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  font-weight: normal;
+}
+.title-bar-brand { color: #ffb020; font-weight: bold; }
+
+.corner-logo {
+  position: absolute;
+  top: 70px;
+  left: 8px;
+  width: 70px;
+  height: 70px;
+  background: #fff;
+  border-radius: 8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 5;
+}
+.corner-logo svg { width:54px; height:54px; }
+
+.content {
+  position: relative;
+  flex: 1;
+  background: #6f6f6f;
+  overflow: hidden;
+}
+
+#scada { position:absolute; top:0; left:0; cursor: pointer; }
+
+.status-stack {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 260px;
+  z-index: 10;
+  display:flex;
+  flex-direction:column;
+}
+.status-stack .srow {
+  background:#1a3a6a;
+  border-bottom:1px solid #0a2a4a;
+  padding:3px 8px;
+  font-size:11px;
+  display:flex;
+  justify-content:space-between;
+}
+.status-stack .srow.green { background:#0a5a0a; }
+.status-stack .srow.red { background:#7a0a0a; }
+.status-stack .srow.amber { background:#7a5a0a; }
+.status-stack .srow.gray { background:#444; color:#999; }
+
+.chart-panel {
+  position: absolute;
+  bottom: 10px;
+  right: 8px;
+  width: 380px;
+  background: #1a1f2a;
+  border: 1px solid #2a3a52;
+  border-radius: 6px;
+  padding: 10px;
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chart-title { font-size: 12px; font-weight: bold; color: #66aaff; }
+.chart-tabs { display: flex; gap: 4px; }
+
+.ctab {
+  background: #2a3a52;
+  border: 1px solid #3a4a62;
+  color: #aaa;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.ctab.active { background: #0a6aa0; border-color: #0a9aff; color: #fff; }
+
+#chart-canvas { width: 100%; height: 140px; display: block; position: static; }
+
+.chart-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 8px;
+  border-top: 1px solid #2a3a52;
+  padding-top: 6px;
+}
+.cstat { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.cstat-label { font-size: 9px; color: #777; text-transform:uppercase; }
+.cstat-val { font-size: 13px; color: #00ccff; font-weight: bold; font-family: monospace; }
+
+.expand-hint {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 9px;
+  color: #556;
+  cursor: pointer;
+  user-select: none;
+}
+.expand-hint:hover { color: #0af; }
+
+.log-panel {
+  position: absolute;
+  bottom: 10px;
+  left: 8px;
+  width: 340px;
+  max-height: 260px;
+  background: #1a1f2a;
+  border: 1px solid #2a3a52;
+  border-radius: 6px;
+  padding: 10px;
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.log-title { font-size: 12px; font-weight: bold; color: #66aaff; }
+.log-count { font-size: 10px; color: #889; background: #2a3344; padding: 1px 7px; border-radius: 10px; }
+
+.log-list {
+  overflow-y: auto;
+  flex: 1;
+  max-height: 165px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.log-item { font-size: 10.5px; padding: 4px 6px; border-radius: 3px; display: flex; gap: 8px; font-family: monospace; }
+.log-item.info { background: rgba(0,170,255,0.08); border-left: 2px solid #0af; color: #bcd; }
+.log-item.warn { background: rgba(255,170,0,0.1); border-left: 2px solid #fa0; color: #fdb; }
+.log-item.danger { background: rgba(255,60,60,0.12); border-left: 2px solid #f44; color: #fbb; }
+.log-time { color: #667; flex-shrink: 0; }
+
+.log-footer { display: flex; gap: 6px; margin-top: 8px; border-top: 1px solid #2a3a52; padding-top: 8px; }
+.lbtn { flex: 1; background: #2a3a52; border: 1px solid #3a4a62; color: #cde; font-size: 10px; padding: 5px; border-radius: 3px; cursor: pointer; }
+.lbtn:hover { background: #0a6aa0; border-color: #0a9aff; color: #fff; }
+
+.fs-overlay { position: fixed; inset: 0; background: #14181f; z-index: 1000; display: none; flex-direction: column; padding: 16px; }
+.fs-overlay.open { display: flex; }
+.fs-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.fs-title { font-size: 18px; font-weight: bold; color: #66aaff; }
+.fs-close { background: #4a0000; border: 1px solid #ff4444; color: #ff8888; font-size: 13px; padding: 6px 14px; border-radius: 4px; cursor: pointer; }
+.fs-close:hover { background: #880000; }
+.fs-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.fs-chart-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.fs-chart-wrap canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+.fs-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+.fs-tabs .ctab { font-size: 13px; padding: 7px 16px; }
+.fs-loglist { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+.fs-loglist .log-item { font-size: 13px; padding: 8px 10px; }
+
+.event-bar {
+  background: #1a1a1a;
+  border-top: 1px solid #555;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #4488ff;
+  display: flex;
+  gap: 16px;
+  align-items:center;
+}
+
+.status-bar {
+  background: #d4d0c8;
+  border-top: 1px solid #888;
+  padding: 3px 8px;
+  display: flex;
+  color: #000;
+  font-size: 11px;
+}
+.status-bar > div { flex:1; border-right:1px solid #999; padding-right:8px; }
+.status-bar > div:last-child { border-right:none; flex:0 0 auto; }
+
+.popup {
+  position: fixed;
+  background: #1a3050;
+  border: 2px solid #0a6aa0;
+  border-radius: 4px;
+  padding: 12px;
+  color: white;
+  font-size: 12px;
+  display: none;
+  z-index: 100;
+  min-width: 240px;
+  box-shadow: 0 4px 25px rgba(0,0,0,0.8);
+}
+.popup h3 { color:#66aaff;margin-bottom:10px;font-size:13px;border-bottom:1px solid #0a6aa0;padding-bottom:6px; }
+.popup-row { display:flex; justify-content:space-between; margin-bottom:6px; gap:20px; }
+.popup-label { color:#aaa; }
+.popup-val { color:#00ff88; font-weight:bold; font-family:monospace; }
+.popup-btns { display:flex; gap:6px; margin-top:10px; }
+.pbtn { flex:1; padding:6px; border:1px solid #0a6aa0; border-radius:3px; background:#0a2a4a; color:white; cursor:pointer; font-size:11px; }
+.pbtn:hover { background:#0a6aa0; }
+.pbtn.red { border-color:#ff4444; background:#4a0000; }
+.pbtn.red:hover { background:#880000; }
+.pbtn.green { border-color:#00aa44; background:#004422; }
+.pbtn.green:hover { background:#007733; }
+.close-btn { float:right; cursor:pointer; color:#ff4444; font-weight:bold; font-size:15px; margin-top:-2px; }
+input[type=range] { width:100%; margin:8px 0; }
+input[type=number] { width:60px; background:#0a2a4a; border:1px solid #0a6aa0; color:#fff; border-radius:3px; padding:4px 6px; font-size:11px; }
+</style>
+</head>
+<body>
+
+<div class="win-titlebar">
+  <div class="wicon"></div>
+  <span>Normal Mode — DELİHIDIRLI KUYU-DEPO KONTROL</span>
+  <div class="wctrls"><span>—</span><span>□</span><span>✕</span></div>
+</div>
+
+<div class="menubar">
+  <span>Sistem</span>
+  <span>Araçlar</span>
+  <span>Ayarlar</span>
+  <span>Yardım</span>
+</div>
+
+<div class="title-bar">
+  <span>DELİHIDIRLI SU DEPOSU — KUYU OTOMASYON YAZILIMI</span>
+  <div class="title-bar-right">
+    <span id="ziyaretci-status-top">👁 —</span>
+    <span class="title-bar-brand">CRT OTOMASYON · 0530 693 07 71</span>
+  </div>
+</div>
+
+<div class="content">
+  <div class="corner-logo">
+    <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#0a5a3a"/><text x="50" y="48" text-anchor="middle" fill="white" font-size="15" font-weight="bold" font-family="Arial">DELİ</text><text x="50" y="68" text-anchor="middle" fill="white" font-size="13" font-weight="bold" font-family="Arial">HIDIRLI</text></svg>
+  </div>
+
+  <canvas id="scada"></canvas>
+
+  <div class="status-stack" id="status-stack">
+    <div class="srow gray" id="s0a">KUYU CIHAZI — Kontrol ediliyor</div>
+    <div class="srow gray" id="s0b">DEPO CIHAZI — Kontrol ediliyor</div>
+    <div class="srow gray" id="s1">KUYU MOTORU — Durduruldu</div>
+    <div class="srow gray" id="s2">SEVİYE RÖLESİ — Su Yok</div>
+    <div class="srow green" id="s3">DEPO BASINÇ SENSÖRÜ — Bağlı</div>
+    <div class="srow green" id="s4">ZAMANLAYICI — Aktif</div>
+    <div class="srow gray" id="s5">ÇALIŞMA MODU — Otomatik</div>
+    <div class="srow gray" id="s7">🔥 Firebase — Bağlanıyor</div>
+  </div>
+
+  <div class="chart-panel" id="chart-panel" onclick="openChartFS(event)">
+    <span class="expand-hint">⤢ büyüt</span>
+    <div class="chart-header">
+      <span class="chart-title">📊 DEPO SEVİYE RAPORU</span>
+      <div class="chart-tabs">
+        <button class="ctab active" id="tab-gunluk" onclick="setChartRange('gunluk',event)">GÜNLÜK</button>
+        <button class="ctab" id="tab-haftalik" onclick="setChartRange('haftalik',event)">HAFTALIK</button>
+      </div>
+    </div>
+    <canvas id="chart-canvas"></canvas>
+    <div class="chart-stats">
+      <div class="cstat"><span class="cstat-label">Ortalama</span><span class="cstat-val" id="cstat-avg">—</span></div>
+      <div class="cstat"><span class="cstat-label">Min</span><span class="cstat-val" id="cstat-min">—</span></div>
+      <div class="cstat"><span class="cstat-label">Max</span><span class="cstat-val" id="cstat-max">—</span></div>
+    </div>
+  </div>
+
+  <div class="log-panel" id="log-panel" onclick="openLogFS(event)">
+    <span class="expand-hint">⤢ büyüt</span>
+    <div class="log-header">
+      <span class="log-title">📋 OLAY GÜNLÜĞÜ</span>
+      <span class="log-count" id="log-count">0 / 100</span>
+    </div>
+    <div class="log-list" id="log-list"></div>
+    <div class="log-footer">
+      <button class="lbtn" onclick="printLog(event)">🖨 Yazdır</button>
+    </div>
+  </div>
+</div>
+
+<div class="fs-overlay" id="fs-chart">
+  <div class="fs-header">
+    <span class="fs-title">📊 DEPO SEVİYE RAPORU — Tam Ekran</span>
+    <button class="fs-close" onclick="closeFS('fs-chart')">✕ Kapat</button>
+  </div>
+  <div class="fs-tabs">
+    <button class="ctab active" id="fstab-gunluk" onclick="setChartRange('gunluk',event,true)">GÜNLÜK</button>
+    <button class="ctab" id="fstab-haftalik" onclick="setChartRange('haftalik',event,true)">HAFTALIK</button>
+  </div>
+  <div class="fs-body"><div class="fs-chart-wrap"><canvas id="chart-canvas-fs"></canvas></div></div>
+  <div class="chart-stats" style="margin-top:14px">
+    <div class="cstat"><span class="cstat-label">Ortalama</span><span class="cstat-val" id="cstat-avg-fs" style="font-size:18px">—</span></div>
+    <div class="cstat"><span class="cstat-label">Min</span><span class="cstat-val" id="cstat-min-fs" style="font-size:18px">—</span></div>
+    <div class="cstat"><span class="cstat-label">Max</span><span class="cstat-val" id="cstat-max-fs" style="font-size:18px">—</span></div>
+  </div>
+</div>
+
+<div class="fs-overlay" id="fs-log">
+  <div class="fs-header">
+    <span class="fs-title">📋 OLAY GÜNLÜĞÜ — Tam Ekran (<span id="fs-log-count">0</span> / 100)</span>
+    <button class="fs-close" onclick="closeFS('fs-log')">✕ Kapat</button>
+  </div>
+  <div class="fs-tabs">
+    <button class="lbtn" style="max-width:140px" onclick="printLog(event)">🖨 Yazdır</button>
+  </div>
+  <div class="fs-loglist" id="fs-log-list"></div>
+</div>
+
+<div class="event-bar">
+  <span style="color:#4488ff;font-weight:bold">Event</span>
+  <span id="event-msg">Sistem başlatıldı</span>
+</div>
+
+<div class="status-bar">
+  <div id="status-mode">Yükleniyor...</div>
+  <div id="status-mid1">Depo İstasyonu — <span id="t-recv">—</span></div>
+  <div id="status-mid2">Kuyu İstasyonu — <span id="t-send">—</span></div>
+  <div id="clock-status"></div>
+</div>
+
+<div class="popup" id="popup">
+  <span class="close-btn" onclick="closePopup()">✕</span>
+  <h3 id="popup-title">Detay</h3>
+  <div id="popup-content"></div>
+</div>
+
+<script>
+const FIREBASE_HOST = "delihidir-su-deposu-default-rtdb.europe-west1.firebasedatabase.app";
+const FIREBASE_AUTH = "Pw7qphgI4g6xqscuCCytNemoPU4s3lSLit6WvwsD";
+const base = `https://${FIREBASE_HOST}`;
+
+// ── Canlı sistem durumu (Firebase'den) ──
+let veri = {
+  yukseklik: 0, yuzde: 0, ham: 0, suVar: false,
+  mod: 1, manuelKomut: 0, otoIstek: 0, motorCalisiyor: false,
+  zamanAktif: 1, zamanBas: 6, zamanBit: 9,
+  bagliMi: false,
+  kuyuCevrimici: true,
+  depoCevrimici: true,
+  acEsik: 50,
+  kapatEsik: 90
+};
+let sonKuyuKalp = null, kuyuDegismemeSayisi = 0;
+let sonDepoKalp = null, depoDegismemeSayisi = 0;
+const CEVRIMDISI_ESIK = 4;   // bu kadar art arda okumada nabiz degismezse "cevrimdisi" say
+let popupTarget = null;
+
+const canvas = document.getElementById('scada');
+const ctx = canvas.getContext('2d');
+
+function resize(){
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+
+let hitboxes = [];
+
+function draw(){
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#6f6f6f';
+  ctx.fillRect(0,0,W,H);
+  hitboxes = [];
+
+  try {
+
+  const baseW = 1100, baseH = 950;
+  const scale = Math.min(W/baseW, H/baseH);
+  ctx.save();
+  const offX = (W - baseW*scale)/2;
+  const offY = (H - baseH*scale)/2;
+  ctx.translate(offX, offY);
+  ctx.scale(scale, scale);
+
+  const akisVar = veri.suVar;
+  const pompaDurum = !veri.kuyuCevrimici ? 'unknown' : (veri.motorCalisiyor ? 'on' : 'off');
+  const akisAnimasyon = veri.kuyuCevrimici && veri.motorCalisiyor && akisVar;
+
+  const kuyuX = 120, kuyuY = 390, kuyuW = 140, kuyuH = 200;
+  drawKuyu(kuyuX, kuyuY, kuyuW, kuyuH);
+  registerHit(kuyuX, kuyuY, kuyuW, kuyuH, 'motor', scale, offX, offY);
+
+  const pompaCX = kuyuX+kuyuW/2, pompaCY = 210;   // motor sabit — kuyuyla birlikte kaymiyor
+  drawPompa(pompaCX, pompaCY, pompaDurum);
+  registerHit(pompaCX-40, pompaCY-30, 80, 60, 'motor', scale, offX, offY);
+
+  // Emis borusu — kuyunun icine dogru biraz iniyor, sanki sudan cekiyormus gibi
+  pipeV(kuyuX+kuyuW/2, kuyuY+28, kuyuX+kuyuW/2, pompaCY+22, akisAnimasyon);
+
+  const lineY = pompaCY-50;
+  pipeV(pompaCX, pompaCY-30, pompaCX, lineY, akisAnimasyon);
+  pipeH(pompaCX, lineY, 560, lineY, akisAnimasyon);
+
+  drawFlowRelay(560, lineY, akisVar, !veri.depoCevrimici);
+  registerHit(540, lineY-25, 40, 50, 'seviye', scale, offX, offY);
+
+  const depoX = 700, depoY = 140, depoW = 260, depoH = 320;
+  pipeH(580, lineY, depoX, lineY, akisAnimasyon);
+  pipeV(depoX, lineY, depoX, depoY+88, akisAnimasyon);
+
+  drawDepo(depoX, depoY, depoW, depoH, veri.yuzde);
+  registerHit(depoX, depoY, depoW, depoH, 'depo', scale, offX, offY);
+
+  drawTimerBox(kuyuX-10, kuyuY+kuyuH+30, kuyuW+20, 60);
+  registerHit(kuyuX-10, kuyuY+kuyuH+30, kuyuW+20, 60, 'zaman', scale, offX, offY);
+
+  drawDashedNetLine(baseH-60, '<<< DELİHIDIRLI KÖY HATTI');
+
+  ctx.restore();
+
+  } catch(err) {
+    console.error('CIZIM HATASI:', err);
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.fillStyle = '#1a0000';
+    ctx.fillRect(10,10,Math.min(W-20,560),90);
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(10,10,Math.min(W-20,560),90);
+    ctx.fillStyle = '#ff8888';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('⚠ CIZIM HATASI (ekran görüntüsü at):', 20, 32);
+    ctx.font = '12px monospace';
+    ctx.fillStyle = '#ffbbbb';
+    ctx.fillText((err.message||String(err)).slice(0,80), 20, 54);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#dd9999';
+    const stackLine = (err.stack||'').split('\n')[1] || '';
+    ctx.fillText(stackLine.trim().slice(0,90), 20, 74);
+    ctx.restore();
+  }
+}
+
+function registerHit(x,y,w,h,id,scale,offX,offY){
+  hitboxes.push({ x: x*scale+offX, y: y*scale+offY, w: w*scale, h: h*scale, id });
+}
+
+function pipeV(x1,y1,x2,y2,flowing){
+  const w=10;
+  ctx.fillStyle = '#bbb';
+  ctx.fillRect(x1-w/2, Math.min(y1,y2), w, Math.abs(y2-y1));
+  ctx.strokeStyle = '#888';
+  ctx.strokeRect(x1-w/2, Math.min(y1,y2), w, Math.abs(y2-y1));
+  if(flowing){
+    const t = Date.now()/250;
+    ctx.strokeStyle = '#1a6aff';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([7,7]);
+    ctx.lineDashOffset = -t%14;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+function pipeH(x1,y1,x2,y2,flowing){
+  const w=10;
+  ctx.fillStyle = '#bbb';
+  ctx.fillRect(Math.min(x1,x2), y1-w/2, Math.abs(x2-x1), w);
+  ctx.strokeStyle = '#888';
+  ctx.strokeRect(Math.min(x1,x2), y1-w/2, Math.abs(x2-x1), w);
+  if(flowing){
+    const t = Date.now()/250;
+    ctx.strokeStyle = '#1a6aff';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([7,7]);
+    ctx.lineDashOffset = -t%14;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawKuyu(x,y,w,h){
+  ctx.fillStyle = '#3a2a1a';
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle = '#6a4a2a';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x,y,w,h);
+
+  const waterY = y+h*0.4;
+  ctx.fillStyle = '#0a5a8a';
+  ctx.fillRect(x+6, waterY, w-12, h-(waterY-y)-6);
+
+  ctx.fillStyle = '#1a3a6a';
+  ctx.fillRect(x-10, y-30, w+20, 26);
+  ctx.strokeStyle = '#3a8aff';
+  ctx.strokeRect(x-10, y-30, w+20, 26);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 13px Arial';
+  ctx.textAlign='center';
+  ctx.fillText('KUYU', x+w/2, y-12);
+}
+
+function drawPompa(cx,cy,durum){
+  // durum: 'on' | 'off' | 'unknown'
+  const r=26;
+  const renkler = {
+    on:      { fill:'#0a4a0a', stroke:'#00ff44', blade:'#aaffaa', label:'#00ff44', text:'ÇALIŞIYOR' },
+    off:     { fill:'#444',    stroke:'#888',    blade:'#888',    label:'#999',    text:'DURDU' },
+    unknown: { fill:'#4a0a0a', stroke:'#ff4444', blade:'#ff8888', label:'#ff6666', text:'BİLİNMİYOR' }
+  };
+  const st = renkler[durum] || renkler.off;
+
+  ctx.fillStyle = st.fill;
+  ctx.strokeStyle = st.stroke;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  if(durum==='on'){
+    const t = Date.now()/120;
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(t%(Math.PI*2));
+    ctx.strokeStyle = st.blade;
+    ctx.lineWidth=2;
+    for(let i=0;i<3;i++){
+      ctx.save();
+      ctx.rotate(i*(Math.PI*2/3));
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-r+6); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  } else if(durum==='unknown'){
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign='center';
+    ctx.fillText('?', cx, cy+7);
+  }
+
+  if(durum!=='unknown'){
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign='center';
+    ctx.fillText('M', cx, cy+4);
+  }
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px Arial';
+  ctx.fillText('KUYU MOTORU', cx, cy-r-10);
+
+  ctx.fillStyle = st.label;
+  ctx.font = 'bold 11px Arial';
+  ctx.fillText(st.text, cx, cy+r+16);
+  if(durum==='unknown'){
+    ctx.font = '9px Arial';
+    ctx.fillText('(çevrimdışı)', cx, cy+r+30);
+  }
+}
+
+function drawFlowRelay(cx,cy,active,bilinmiyor){
+  const r=18;
+  ctx.fillStyle = bilinmiyor ? '#4a0a0a' : (active ? '#0a2a4a' : '#2a0a0a');
+  ctx.strokeStyle = bilinmiyor ? '#ff4444' : (active ? '#00bfff' : '#660000');
+  ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#fff';
+  ctx.font='bold 9px Arial';
+  ctx.textAlign='center';
+  ctx.fillText('SR',cx,cy-3);
+  ctx.fillStyle = bilinmiyor ? '#ff8888' : (active? '#00ffaa':'#ff6666');
+  ctx.font='8px Arial';
+  ctx.fillText(bilinmiyor ? '? (offline)' : (active?'SU VAR':'SU YOK'), cx, cy+9);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px Arial';
+  ctx.fillText('SEVİYE RÖLESİ', cx, cy-r-12);
+}
+
+function drawTimerBox(x,y,w,h){
+  const en = veri.zamanAktif===1;
+  ctx.fillStyle = en ? '#0a3a4a' : '#3a2a0a';
+  ctx.strokeStyle = en ? '#0aaaff' : '#aa7700';
+  ctx.lineWidth=2;
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeRect(x,y,w,h);
+  ctx.fillStyle='#fff';
+  ctx.font='bold 11px Arial';
+  ctx.textAlign='center';
+  ctx.fillText('⏱ ZAMANLAYICI', x+w/2, y+20);
+  ctx.font='bold 12px Arial';
+  ctx.fillStyle = en ? '#6fdfff' : '#ffaa55';
+  const bas = String(veri.zamanBas).padStart(2,'0')+':00';
+  const bit = String(veri.zamanBit).padStart(2,'0')+':00';
+  ctx.fillText(en ? (bas+' – '+bit) : 'PASİF', x+w/2, y+40);
+}
+
+function constrain01(v){ return Math.max(0, Math.min(1, v)); }
+
+function drawDepo(x,y,w,h,yuzde){
+  const pct = Math.min(1, Math.max(0, yuzde/100));
+  const waterH = Math.round(pct*(h-6));
+  const waterY = y+h-waterH;
+
+  ctx.fillStyle = '#222';
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle = '#0a3a6a';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x,y,w,h);
+
+  if(waterH>0){
+    const color1 = pct<0.3 ? '#ff4400' : pct<0.5?'#ff8800' : '#00aaff';
+    const color2 = pct<0.3 ? '#aa1100' : pct<0.5?'#cc5500' : '#0066bb';
+    const grad = ctx.createLinearGradient(0,waterY,0,y+h);
+    grad.addColorStop(0,color1);
+    grad.addColorStop(1,color2);
+    ctx.fillStyle = grad;
+    ctx.fillRect(x+3,waterY,w-6,waterH);
+
+    const t = Date.now()/450;
+    ctx.fillStyle = color1;
+    ctx.beginPath();
+    for(let i=0;i<=w-6;i+=2){
+      const wx=x+3+i, wy=waterY+Math.sin(i/12+t)*2.5;
+      if(i===0) ctx.moveTo(wx,wy); else ctx.lineTo(wx,wy);
+    }
+    ctx.lineTo(x+w-3,waterY+6); ctx.lineTo(x+3,waterY+6);
+    ctx.fill();
+  }
+
+  const acOrani = constrain01(veri.acEsik / 100);
+  const kapatOrani = constrain01(veri.kapatEsik / 100);
+
+  const limLow = y+h-Math.round(acOrani*(h-6));
+  ctx.strokeStyle='#ff5555';
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(x+3,limLow); ctx.lineTo(x+w-3,limLow); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#ff5555';
+  ctx.font='bold 10px Arial';
+  ctx.textAlign='left';
+  ctx.fillText('%'+veri.acEsik+' AÇ', x+w+6, limLow+4);
+
+  const limHigh = y+h-Math.round(kapatOrani*(h-6));
+  ctx.strokeStyle='#ffcc00';
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(x+3,limHigh); ctx.lineTo(x+w-3,limHigh); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#ffcc00';
+  ctx.fillText('%'+veri.kapatEsik+' KAPAT', x+w+6, limHigh+4);
+
+  ctx.fillStyle = '#1a3a6a';
+  ctx.fillRect(x-10, y-34, w+20, 28);
+  ctx.strokeStyle = '#3a8aff';
+  ctx.strokeRect(x-10, y-34, w+20, 28);
+  ctx.fillStyle = '#fff';
+  ctx.font='bold 13px Arial';
+  ctx.textAlign='center';
+  ctx.fillText('DELİHIDIRLI SU DEPOSU', x+w/2, y-15);
+
+  ctx.fillStyle = pct<0.3 ? '#ff6644' : pct<0.5 ? '#ffaa00' : '#fff';
+  ctx.font='bold 30px Arial';
+  ctx.fillText(Math.round(pct*100)+'%', x+w/2, y+h/2-6);
+  ctx.font='bold 18px Arial';
+  ctx.fillStyle = pct<0.3 ? '#ffaa88' : pct<0.5 ? '#ffcc66' : '#88ccff';
+  ctx.fillText(veri.yukseklik.toFixed(1)+' cm', x+w/2, y+h/2+24);
+
+  ctx.strokeStyle = pct<0.3 ? '#ff2200' : pct<0.9 ? '#ffaa00' : '#00aaff';
+  ctx.lineWidth=4;
+  ctx.strokeRect(x,y,w,h);
+
+  if(!veri.depoCevrimici){
+    ctx.fillStyle = 'rgba(120,0,0,0.55)';
+    ctx.fillRect(x, y+h/2+40, w, 30);
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y+h/2+40, w, 30);
+    ctx.fillStyle = '#ffaaaa';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠ ÇEVRİMDIŞI — veri donmuş', x+w/2, y+h/2+60);
+  }
+}
+
+function drawDashedNetLine(y, label){
+  ctx.strokeStyle = '#1a6aff';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10,6]);
+  ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#1a6aff';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign='left';
+  ctx.fillText(label, 10, y-6);
+}
+
+canvas.addEventListener('click', (e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+  for(const hb of hitboxes){
+    if(mx>=hb.x && mx<=hb.x+hb.w && my>=hb.y && my<=hb.y+hb.h){
+      openPopup(hb.id, e.clientX, e.clientY);
+      return;
+    }
+  }
+});
+
+function openPopup(id, mx, my){
+  popupTarget = id;
+  const popup = document.getElementById('popup');
+  const title = document.getElementById('popup-title');
+  const content = document.getElementById('popup-content');
+
+  if(id==='motor'){
+    title.textContent = 'KUYU MOTORU Kontrolü';
+    content.innerHTML = `
+      <div class="popup-row"><span class="popup-label">Durum:</span><span class="popup-val">${veri.motorCalisiyor?'ÇALIŞIYOR':'DURDU'}</span></div>
+      <div class="popup-row"><span class="popup-label">Mod:</span><span class="popup-val">${veri.mod===1?'OTOMATİK':'MANUEL'}</span></div>
+      <div class="popup-row"><span class="popup-label">Oto İstek:</span><span class="popup-val">${veri.otoIstek===1?'VAR':'YOK'}</span></div>
+      <div class="popup-btns">
+        <button class="pbtn green" onclick="setManuelKomut(1)" ${veri.mod!==0?'disabled style="opacity:0.4"':''}>ÇALIŞTIR</button>
+        <button class="pbtn red" onclick="setManuelKomut(0)" ${veri.mod!==0?'disabled style="opacity:0.4"':''}>DURDUR</button>
+      </div>
+      <div class="popup-btns">
+        <button class="pbtn" onclick="setMod(1)" style="${veri.mod===1?'background:#0a6aa0':''}">OTOMATİK MOD</button>
+        <button class="pbtn" onclick="setMod(0)" style="${veri.mod===0?'background:#0a6aa0':''}">MANUEL MOD</button>
+      </div>
+      ${veri.mod===1?'<div style="font-size:9px;color:#889;margin-top:8px">Manuel butonlar sadece Manuel modda çalışır.</div>':''}`;
+  } else if(id==='seviye'){
+    title.textContent = 'SEVİYE RÖLESİ Detay';
+    content.innerHTML = `
+      <div class="popup-row"><span class="popup-label">Durum:</span><span class="popup-val">${veri.suVar?'SU VAR':'SU YOK'}</span></div>
+      <div class="popup-row"><span class="popup-label">Konum:</span><span class="popup-val" style="font-size:10px">Depo (GPIO32)</span></div>`;
+  } else if(id==='depo'){
+    const pct = Math.round(veri.yuzde);
+    title.textContent = 'DELİHIDIRLI SU DEPOSU Detay';
+    content.innerHTML = `
+      <div class="popup-row"><span class="popup-label">Seviye:</span><span class="popup-val">%${pct}</span></div>
+      <div class="popup-row"><span class="popup-label">Yükseklik:</span><span class="popup-val">${veri.yukseklik.toFixed(1)} cm</span></div>
+      <div class="popup-row"><span class="popup-label">Ham ADC:</span><span class="popup-val">${veri.ham}</span></div>
+      <div class="popup-row"><span class="popup-label">Alt Eşik (%${veri.acEsik}):</span><span class="popup-val" style="color:${pct<veri.acEsik?'#ff5555':'#00ff88'}">${pct<veri.acEsik?'TETİKLENDİ':'NORMAL'}</span></div>
+      <div class="popup-row"><span class="popup-label">Üst Eşik (%${veri.kapatEsik}):</span><span class="popup-val" style="color:${pct>=veri.kapatEsik?'#00aaff':'#00ff88'}">${pct>=veri.kapatEsik?'DOLU':'NORMAL'}</span></div>
+      <div class="popup-row" style="border-top:1px solid #0a6aa0;padding-top:10px;margin-top:6px"><span class="popup-label">Açma Eşiği %:</span><input type="number" min="0" max="100" id="ti-ac" value="${veri.acEsik}"></div>
+      <div class="popup-row" style="align-items:center"><span class="popup-label">Kapatma Eşiği %:</span><input type="number" min="0" max="100" id="ti-kapat" value="${veri.kapatEsik}"></div>
+      <div class="popup-btns">
+        <button class="pbtn green" onclick="saveEsikler()">KAYDET</button>
+      </div>
+      <div style="font-size:9px;color:#889;margin-top:8px">Değişiklik depo cihazına birkaç saniye içinde iletilir.</div>`;
+  } else if(id==='zaman'){
+    title.textContent = 'ZAMANLAYICI Ayarları';
+    content.innerHTML = `
+      <div class="popup-row"><span class="popup-label">Durum:</span><span class="popup-val">${veri.zamanAktif===1?'AKTİF':'PASİF'}</span></div>
+      <div class="popup-row" style="align-items:center"><span class="popup-label">Başlangıç (saat):</span><input type="number" min="0" max="23" id="ti-start" value="${veri.zamanBas}"></div>
+      <div class="popup-row" style="align-items:center"><span class="popup-label">Bitiş (saat):</span><input type="number" min="0" max="23" id="ti-end" value="${veri.zamanBit}"></div>
+      <div class="popup-btns">
+        <button class="pbtn green" onclick="saveTimer()">KAYDET</button>
+        <button class="pbtn" onclick="setTimerEnabled(${veri.zamanAktif===1?0:1})">${veri.zamanAktif===1?'PASİFE AL':'AKTİF ET'}</button>
+      </div>`;
+  }
+
+  popup.style.display = 'block';
+  let px = mx+10, py = my-10;
+  if(px+250>window.innerWidth) px = mx-260;
+  popup.style.left = px+'px';
+  popup.style.top = py+'px';
+}
+
+function closePopup(){ document.getElementById('popup').style.display='none'; popupTarget=null; }
+
+async function fbSet(path, value){
+  try {
+    const res = await fetch(`${base}${path}.json?auth=${FIREBASE_AUTH}`, {
+      method: 'PUT',
+      body: JSON.stringify(value)
+    });
+    return res.ok;
+  } catch(e){
+    console.error('Firebase yazma hatasi', e);
+    return false;
+  }
+}
+
+async function setManuelKomut(v){
+  veri.manuelKomut = v;
+  await fbSet('/DeliHidir/Sistem/Manuel_Komut', v);
+  if(popupTarget==='motor') openPopup('motor', parseInt(document.getElementById('popup').style.left), parseInt(document.getElementById('popup').style.top));
+}
+async function setMod(m){
+  veri.mod = m;
+  await fbSet('/DeliHidir/Sistem/Mod', m);
+  if(popupTarget==='motor') openPopup('motor', parseInt(document.getElementById('popup').style.left), parseInt(document.getElementById('popup').style.top));
+}
+async function setTimerEnabled(v){
+  veri.zamanAktif = v;
+  await fbSet('/DeliHidir/Zamanlayici/Aktif', v);
+  if(popupTarget==='zaman') openPopup('zaman', parseInt(document.getElementById('popup').style.left), parseInt(document.getElementById('popup').style.top));
+}
+async function saveTimer(){
+  const bas = parseInt(document.getElementById('ti-start').value);
+  const bit = parseInt(document.getElementById('ti-end').value);
+  veri.zamanBas = bas; veri.zamanBit = bit;
+  await fbSet('/DeliHidir/Zamanlayici/Baslangic', bas);
+  await fbSet('/DeliHidir/Zamanlayici/Bitis', bit);
+}
+
+async function saveEsikler(){
+  const ac = parseInt(document.getElementById('ti-ac').value);
+  const kapat = parseInt(document.getElementById('ti-kapat').value);
+  if(isNaN(ac) || isNaN(kapat) || ac<0 || ac>100 || kapat<0 || kapat>100){
+    alert('Lütfen 0-100 arası geçerli değerler girin.');
+    return;
+  }
+  if(ac >= kapat){
+    alert('Açma eşiği, kapatma eşiğinden küçük olmalı.');
+    return;
+  }
+  veri.acEsik = ac; veri.kapatEsik = kapat;
+  await fbSet('/DeliHidir/Sistem/AcEsik', ac);
+  await fbSet('/DeliHidir/Sistem/KapatEsik', kapat);
+  if(popupTarget==='depo') openPopup('depo', parseInt(document.getElementById('popup').style.left), parseInt(document.getElementById('popup').style.top));
+}
+
+function updateStatusStack(){
+  const s0a = document.getElementById('s0a');
+  s0a.textContent = 'KUYU CIHAZI — '+(veri.kuyuCevrimici?'Veri Geliyor':'⚠ ÇEVRİMDIŞI (veri donmuş olabilir)');
+  s0a.className = 'srow '+(veri.kuyuCevrimici?'green':'red');
+
+  const s0b = document.getElementById('s0b');
+  s0b.textContent = 'DEPO CIHAZI — '+(veri.depoCevrimici?'Veri Geliyor':'⚠ ÇEVRİMDIŞI (veri donmuş olabilir)');
+  s0b.className = 'srow '+(veri.depoCevrimici?'green':'red');
+
+  const s1 = document.getElementById('s1');
+  s1.textContent = 'KUYU MOTORU — '+(veri.motorCalisiyor?'Çalışıyor':'Durduruldu')+(veri.kuyuCevrimici?'':' (?)');
+  s1.className = 'srow '+(!veri.kuyuCevrimici ? 'red' : veri.motorCalisiyor ? 'green' : 'gray');
+
+  const s2 = document.getElementById('s2');
+  s2.textContent = 'SEVİYE RÖLESİ — '+(veri.suVar?'Su Var':'Su Yok')+(veri.depoCevrimici?'':' (?)');
+  s2.className = 'srow '+(!veri.depoCevrimici ? 'red' : veri.suVar ? 'green' : 'gray');
+
+  const s4 = document.getElementById('s4');
+  s4.textContent = 'ZAMANLAYICI — '+(veri.zamanAktif===1?'Aktif':'Pasif');
+  s4.className = 'srow '+(veri.zamanAktif===1?'green':'amber');
+
+  const s5 = document.getElementById('s5');
+  s5.textContent = 'ÇALIŞMA MODU — '+(veri.mod===1?'Otomatik':'Manuel');
+  s5.className = 'srow '+(veri.mod===1?'green':'amber');
+
+  const s7 = document.getElementById('s7');
+  s7.textContent = '🔥 Firebase — '+(veri.bagliMi?'Bağlı':'Bağlantı Sorunu');
+  s7.className = 'srow '+(veri.bagliMi?'green':'red');
+
+  document.getElementById('status-mode').textContent = veri.mod===1?'Otomatik Mod':'Manuel Mod';
+}
+
+let eventLog = [];
+
+function ekleOlayListesi(olaylar){
+  eventLog = olaylar.map(o => ({ time: o.saat || '—', date: o.tarih || '', msg: o.mesaj || '', type: o.tip || 'info' }));
+  renderLog();
+}
+
+function renderLog(){
+  const listHtml = eventLog.map(e => {
+    const kisaTarih = e.date ? e.date.slice(0,5) : '';   // gg.aa
+    const zamanEtiket = kisaTarih ? (kisaTarih + ' ' + e.time) : e.time;
+    return `<div class="log-item ${e.type}"><span class="log-time">${zamanEtiket}</span><span>${e.msg}</span></div>`;
+  }).join('');
+  const list = document.getElementById('log-list');
+  if(list) list.innerHTML = listHtml;
+  const fsList = document.getElementById('fs-log-list');
+  if(fsList) fsList.innerHTML = listHtml;
+  const c1 = document.getElementById('log-count');
+  if(c1) c1.textContent = eventLog.length + ' / 100';
+  const c2 = document.getElementById('fs-log-count');
+  if(c2) c2.textContent = eventLog.length;
+  if(eventLog.length>0) document.getElementById('event-msg').textContent = eventLog[0].msg;
+}
+
+function printLog(e){
+  if(e) e.stopPropagation();
+  const win = window.open('', '_blank');
+  const rows = eventLog.map(ev =>
+    `<tr><td style="padding:4px 10px;border-bottom:1px solid #ddd;white-space:nowrap">${ev.date||'—'}</td>
+     <td style="padding:4px 10px;border-bottom:1px solid #ddd;white-space:nowrap">${ev.time}</td>
+     <td style="padding:4px 10px;border-bottom:1px solid #ddd">${ev.msg}</td></tr>`
+  ).join('');
+  win.document.write(`
+    <html><head><title>DELİHIDIRLI KUYU-DEPO — Olay Günlüğü</title></head>
+    <body style="font-family:Arial;padding:20px">
+      <h2>DELİHIDIRLI SU DEPOSU — OLAY GÜNLÜĞÜ</h2>
+      <p>Rapor Tarihi: ${new Date().toLocaleString('tr-TR')} &nbsp;|&nbsp; Toplam Kayıt: ${eventLog.length}</p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr><th style="text-align:left;padding:4px 10px;border-bottom:2px solid #333">Tarih</th><th style="text-align:left;padding:4px 10px;border-bottom:2px solid #333">Saat</th><th style="text-align:left;padding:4px 10px;border-bottom:2px solid #333">Olay</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </body></html>
+  `);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(), 300);
+}
+
+function openChartFS(e){
+  if(e.target.closest('.ctab')) return;
+  document.getElementById('fs-chart').classList.add('open');
+  setTimeout(()=>drawChartTo('chart-canvas-fs', true), 50);
+}
+function openLogFS(e){
+  document.getElementById('fs-log').classList.add('open');
+  renderLog();
+}
+function closeFS(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.remove('open');
+}
+
+function updateClock(){
+  const now = new Date();
+  const t = now.toLocaleTimeString('tr-TR');
+  document.getElementById('t-send').textContent = t;
+  document.getElementById('t-recv').textContent = t;
+  document.getElementById('clock-status').textContent = now.toLocaleDateString('tr-TR')+' '+t;
+}
+
+// ── Canlı ziyaretçi sayacı ──────────────────────
+// NOT: Sadece REST (fetch) kullaniyoruz, Firebase SDK yok — bu yuzden
+// gercek "onDisconnect" ozelligi (sekme kapanınca aninda silinme) mumkun
+// degil. Bunun yerine her ziyaretci birkaç saniyede bir "hala buradayim"
+// nabzi atar; nabzi 15 saniyeden eski kalan ziyaretciler "ayrildi" sayilir.
+const ziyaretciId = 'z' + Date.now() + Math.random().toString(36).slice(2, 8);
+const ZIYARETCI_NABIZ_MS = 5000;
+const ZIYARETCI_ZAMAN_ASIMI_MS = 15000;
+
+async function ziyaretciNabzıAt(){
+  try {
+    await fetch(`${base}/DeliHidir/Ziyaretciler/${ziyaretciId}.json?auth=${FIREBASE_AUTH}`, {
+      method: 'PUT',
+      body: JSON.stringify(Date.now())
+    });
+  } catch(e) { /* sessizce gec, kritik degil */ }
+}
+
+async function ziyaretciSayisiniGuncelle(){
+  try {
+    const res = await fetch(`${base}/DeliHidir/Ziyaretciler.json?auth=${FIREBASE_AUTH}`);
+    const data = await res.json();
+    if(!data){ document.getElementById('ziyaretci-status-top').textContent = '👁 1'; return; }
+
+    const now = Date.now();
+    let aktif = 0;
+    for(const [id, zaman] of Object.entries(data)){
+      if(now - zaman < ZIYARETCI_ZAMAN_ASIMI_MS) aktif++;
+      else fetch(`${base}/DeliHidir/Ziyaretciler/${id}.json?auth=${FIREBASE_AUTH}`, { method:'DELETE' }).catch(()=>{});
+    }
+    document.getElementById('ziyaretci-status-top').textContent = '👁 ' + Math.max(aktif, 1);
+  } catch(e) {
+    document.getElementById('ziyaretci-status-top').textContent = '👁 ?';
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  navigator.sendBeacon && navigator.sendBeacon(
+    `${base}/DeliHidir/Ziyaretciler/${ziyaretciId}.json?auth=${FIREBASE_AUTH}&_method=DELETE`
+  );
+});
+
+function loop(){ draw(); requestAnimationFrame(loop); }
+
+let chartRange = 'gunluk';
+let gecmisVeri = [];
+
+function epochFromDateStr(tarih, saat){
+  const [g,a,y] = tarih.split('.');
+  return new Date(`${y}-${a}-${g}T${saat}`).getTime();
+}
+
+async function gecmisVeriCek(){
+  try {
+    const res = await fetch(`${base}/DeliHidir/KalibrasyonGecmisi.json?auth=${FIREBASE_AUTH}`);
+    const data = await res.json();
+    if(!data) { gecmisVeri = []; return; }
+    gecmisVeri = Object.values(data)
+      .filter(r => r && r.tarih && r.saat)
+      .map(r => ({ t: epochFromDateStr(r.tarih, r.saat), yuzde: r.yuzde }))
+      .sort((a,b) => a.t - b.t);
+    drawChart();
+  } catch(e){
+    console.error('Gecmis veri cekilemedi', e);
+  }
+}
+
+function drawChartTo(canvasId, isFs){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  canvas.width = rect.width*dpr;
+  canvas.height = rect.height*dpr;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const now = Date.now();
+  const pencere = chartRange==='gunluk' ? 24*3600*1000 : 7*24*3600*1000;
+  const filtreli = gecmisVeri.filter(p => (now - p.t) <= pencere);
+  const data = filtreli.map(p => p.yuzde);
+  const labels = filtreli.map(p => {
+    const d = new Date(p.t);
+    return chartRange==='gunluk' ? d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})
+                                  : d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'});
+  });
+
+  const padL = (isFs?46:32)*dpr, padR = 12*dpr, padT = 10*dpr, padB = (isFs?28:22)*dpr;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+
+  ctx.strokeStyle = '#2a3344';
+  ctx.lineWidth = 1;
+  for(let i=0;i<=4;i++){
+    const gy = padT + plotH*i/4;
+    ctx.beginPath();
+    ctx.moveTo(padL, gy);
+    ctx.lineTo(W-padR, gy);
+    ctx.stroke();
+    const val = Math.round(100 - i*25);
+    ctx.fillStyle = '#667';
+    ctx.font = ((isFs?12:9)*dpr)+'px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(val+'%', padL-4*dpr, gy+3*dpr);
+  }
+
+  if(data.length < 2){
+    ctx.fillStyle = '#667';
+    ctx.font = ((isFs?14:11)*dpr)+'px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Henüz yeterli veri yok', W/2, H/2);
+    const suffix = isFs ? '-fs' : '';
+    ['avg','min','max'].forEach(k=>{
+      const el = document.getElementById('cstat-'+k+suffix);
+      if(el) el.textContent = '—';
+    });
+    return;
+  }
+
+  const y50 = padT + plotH*(1-0.50);
+  ctx.strokeStyle = '#ff5555';
+  ctx.setLineDash([5*dpr,4*dpr]);
+  ctx.beginPath(); ctx.moveTo(padL, y50); ctx.lineTo(W-padR, y50); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const stepX = plotW/(data.length-1);
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x = padL + i*stepX;
+    const y = padT + plotH*(1-v/100);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  const grad = ctx.createLinearGradient(0,padT,0,padT+plotH);
+  grad.addColorStop(0,'rgba(0,170,255,0.35)');
+  grad.addColorStop(1,'rgba(0,170,255,0.02)');
+  ctx.lineTo(padL+(data.length-1)*stepX, padT+plotH);
+  ctx.lineTo(padL, padT+plotH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x = padL + i*stepX;
+    const y = padT + plotH*(1-v/100);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = '#00aaff';
+  ctx.lineWidth = (isFs?3:2)*dpr;
+  ctx.stroke();
+
+  ctx.fillStyle = '#778';
+  ctx.font = ((isFs?11:8.5)*dpr)+'px Arial';
+  ctx.textAlign = 'center';
+  const labelStep = Math.ceil(labels.length/(isFs?12:6)) || 1;
+  labels.forEach((l,i)=>{
+    if(i%labelStep===0){
+      const x = padL+i*stepX;
+      ctx.fillText(l, x, H-6*dpr);
+    }
+  });
+
+  const avg = data.reduce((a,b)=>a+b,0)/data.length;
+  const min = Math.min(...data), max = Math.max(...data);
+  const suffix = isFs ? '-fs' : '';
+  const elAvg = document.getElementById('cstat-avg'+suffix);
+  const elMin = document.getElementById('cstat-min'+suffix);
+  const elMax = document.getElementById('cstat-max'+suffix);
+  if(elAvg) elAvg.textContent = '%'+avg.toFixed(0);
+  if(elMin) elMin.textContent = '%'+min.toFixed(0);
+  if(elMax) elMax.textContent = '%'+max.toFixed(0);
+}
+
+function drawChart(){
+  drawChartTo('chart-canvas', false);
+  if(document.getElementById('fs-chart').classList.contains('open')){
+    drawChartTo('chart-canvas-fs', true);
+  }
+}
+
+function setChartRange(r, e, isFs){
+  if(e) e.stopPropagation();
+  chartRange = r;
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
+  const t1 = document.getElementById('tab-'+r);
+  const t2 = document.getElementById('fstab-'+r);
+  if(t1) t1.classList.add('active');
+  if(t2) t2.classList.add('active');
+  drawChart();
+}
+
+async function canliVeriCek(){
+  try {
+    const res = await fetch(`${base}/DeliHidir.json?auth=${FIREBASE_AUTH}`);
+    const data = await res.json();
+    if(!data) throw new Error('Veri boş');
+
+    const k = data.Kalibrasyon || {};
+    const s = data.Sistem || {};
+    const z = data.Zamanlayici || {};
+
+    veri.yukseklik = k.Yukseklik ?? veri.yukseklik;
+    veri.yuzde = k.Yuzde ?? veri.yuzde;
+    veri.ham = k.Ham ?? veri.ham;
+    veri.suVar = !!k.SuVar;
+
+    veri.mod = s.Mod ?? veri.mod;
+    veri.manuelKomut = s.Manuel_Komut ?? veri.manuelKomut;
+    veri.otoIstek = s.Oto_Istek ?? veri.otoIstek;
+    veri.acEsik = s.AcEsik ?? veri.acEsik;
+    veri.kapatEsik = s.KapatEsik ?? veri.kapatEsik;
+    veri.motorCalisiyor = !!s.Motor_Calisiyor;
+
+    veri.zamanAktif = z.Aktif ?? veri.zamanAktif;
+    veri.zamanBas = z.Baslangic ?? veri.zamanBas;
+    veri.zamanBit = z.Bitis ?? veri.zamanBit;
+
+    // ── Nabiz (heartbeat) kontrolu — cihaz gercekten veri gonderiyor mu? ──
+    const cihazlar = data.Cihazlar || {};
+    const kuyuKalp = cihazlar.Kuyu_Kalp;
+    const depoKalp = cihazlar.Depo_Kalp;
+
+    if(kuyuKalp !== undefined){
+      if(kuyuKalp === sonKuyuKalp) kuyuDegismemeSayisi++;
+      else { kuyuDegismemeSayisi = 0; sonKuyuKalp = kuyuKalp; }
+      veri.kuyuCevrimici = kuyuDegismemeSayisi < CEVRIMDISI_ESIK;
+    }
+    if(depoKalp !== undefined){
+      if(depoKalp === sonDepoKalp) depoDegismemeSayisi++;
+      else { depoDegismemeSayisi = 0; sonDepoKalp = depoKalp; }
+      veri.depoCevrimici = depoDegismemeSayisi < CEVRIMDISI_ESIK;
+    }
+
+    veri.bagliMi = true;
+
+    if(data.KalibrasyonOlaylar){
+      // tarih alani "gg.aa.yyyy" formatinda geliyor - dogrudan string
+      // karsilastirma kronolojik sira vermiyor (orn. "05.09.2026" < "31.08.2026"
+      // cikiyor, cunku "0" < "3"). Sirlama icin "yyyy.aa.gg saat" seklinde
+      // sortable bir anahtara ceviriyoruz.
+      const siraAnahtari = (o) => {
+        const p = (o.tarih || '').split('.'); // [gg, aa, yyyy]
+        if(p.length === 3){
+          const gg = p[0].padStart(2,'0'), aa = p[1].padStart(2,'0'), yyyy = p[2];
+          return `${yyyy}.${aa}.${gg} ${o.saat || ''}`;
+        }
+        return (o.tarih || '') + (o.saat || '');
+      };
+      const olaylar = Object.values(data.KalibrasyonOlaylar)
+        .filter(o => o && o.saat)
+        .sort((a,b) => siraAnahtari(b).localeCompare(siraAnahtari(a)))
+        .slice(0,100);
+      ekleOlayListesi(olaylar);
+    }
+
+    updateStatusStack();
+  } catch(e){
+    veri.bagliMi = false;
+    updateStatusStack();
+    console.error('Firebase okuma hatasi', e);
+  }
+}
+
+window.addEventListener('resize', () => {
+  resize();
+  drawChart();
+});
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => { resize(); drawChart(); }, 250);
+});
+resize();
+loop();
+updateClock();
+setInterval(updateClock, 1000);
+
+ziyaretciNabzıAt();
+ziyaretciSayisiniGuncelle();
+setInterval(ziyaretciNabzıAt, ZIYARETCI_NABIZ_MS);
+setInterval(ziyaretciSayisiniGuncelle, ZIYARETCI_NABIZ_MS);
+setInterval(canliVeriCek, 3000);
+setInterval(gecmisVeriCek, 5*60*1000);
+canliVeriCek();
+gecmisVeriCek();
+drawChart();
+updateStatusStack();
+</script>
+</body>
+</html>
